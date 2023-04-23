@@ -1,5 +1,5 @@
 <template>
-  <section class="loading-pannel" v-show="visible">
+  <section class="loading-pannel" v-show="visible" @click.stop>
     <img class="loading-img" src="./loading.png" alt="" srcset="" />
     <span>{{ props.text }}</span>
   </section>
