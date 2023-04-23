@@ -1,5 +1,6 @@
 import axios from 'axios';
 import qs from 'qs';
+import { useAxiosLoading } from './useAxiosLoading';
 
 // 拦截器顺序（洋葱模型）： 局部请求拦截器 -> 全局请求拦截器-> 局部响应拦截器-> 全局响应拦截器
 
@@ -10,6 +11,8 @@ const RETRYCONFIG = {
   retryTimes: 0, // 默认为0 不重试，设置不为0则开启请求重试
   delay: 2000 // 请求重试的延迟时间
 };
+
+const { setLoading, delLoading } = useAxiosLoading();
 
 class Http {
   #requestTimes = 0; // 重试请求次数
@@ -24,6 +27,7 @@ class Http {
     //// 防止缓存
     this.service.interceptors.request.use(
       config => {
+        setLoading(config);
         const t = Date.parse(String(new Date()));
         // 判断get请求
         if (/get/i.test(config.method)) {
@@ -54,7 +58,9 @@ class Http {
     this.service.interceptors.response.use(
       response => {
         console.log('全局响应拦截器', response);
-        removePendingReq(response.config);
+        const config = response.config;
+        delLoading(config);
+        removePendingReq(config);
         return response.data;
       },
       err => {
@@ -62,6 +68,7 @@ class Http {
         const status = response?.status;
         // 提示报错信息
         alert(`${httpErrorStatusCode(status)}`);
+        delLoading(config);
         removePendingReq(config);
         // 失败重试调用
         this.handleRetry(config);
