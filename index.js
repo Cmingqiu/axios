@@ -24,14 +24,13 @@ class Http {
     this.interceptorObj = config.interceptors;
 
     // 全局请求拦截器
-    //// 防止缓存
     this.service.interceptors.request.use(
       config => {
         setLoading(config);
         const t = Date.parse(String(new Date()));
+        // 添加时间戳，防止缓存，重复请求取消功能失效
         // 判断get请求
         if (/get/i.test(config.method)) {
-          // 添加时间戳
           (config.params = config.params || {}).t = t;
         } else if (/post/i.test(config.method)) {
           (config.data = config.data || {}).t = t;
@@ -57,7 +56,6 @@ class Http {
     // 全局响应拦截器
     this.service.interceptors.response.use(
       response => {
-        console.log('全局响应拦截器', response);
         const config = response.config;
         delLoading(config);
         removePendingReq(config);
@@ -67,7 +65,7 @@ class Http {
         const { config, response } = err;
         const status = response?.status;
         // 提示报错信息
-        alert(`${httpErrorStatusCode(status)}`);
+        // alert(`${httpErrorStatusCode(status)}`);
         delLoading(config);
         removePendingReq(config);
         // 失败重试调用
@@ -78,7 +76,6 @@ class Http {
   }
 
   request(config) {
-    console.log(this);
     return new Promise((resolve, reject) => {
       // 单个http的请求拦截器
       if (config?.interceptors?.requestInterceptor) {
