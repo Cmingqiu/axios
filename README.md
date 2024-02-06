@@ -4,5 +4,5 @@
 - [x] 取消重复请求
 - [x] 接口失败重试
 - [x] 手动取消请求
+- [x] 封装 loading
 - [ ] try catch 处理
-- [ ] 封装 loading

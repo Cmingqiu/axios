@@ -7,7 +7,7 @@ import { useAxiosLoading } from './useAxiosLoading';
 // 进行中的请求缓存下来
 const pendingRequest = new Map();
 
-const RETRYCONFIG = {
+const RETRY_CONFIG = {
   retryTimes: 0, // 默认为0 不重试，设置不为0则开启请求重试
   delay: 2000 // 请求重试的延迟时间
 };
@@ -19,7 +19,7 @@ class Http {
   service = null; // axios实例
   interceptorObj = null; // 局部拦截器对象
   constructor(config) {
-    config = { ...RETRYCONFIG, ...config };
+    config = { ...RETRY_CONFIG, ...config };
     this.service = axios.create(config);
     this.interceptorObj = config.interceptors;
 
@@ -95,9 +95,9 @@ class Http {
     });
   }
 
-  // 取消请求
+  // 取消单个或所有请求
   abort(config) {
-    removePendingReq(config);
+    config ? removePendingReq(config) : removeAllPendingReq();
   }
 
   /**
@@ -177,14 +177,12 @@ function generateReqKey(config) {
  * @param {*} config
  */
 function addPendingReq(config) {
+  const controller = new AbortController();
   const reqKey = generateReqKey(config);
-  config.cancelToken =
-    config.cancelToken ||
-    new axios.CancelToken(cancel => {
-      if (!pendingRequest.has(reqKey)) {
-        pendingRequest.set(reqKey, cancel);
-      }
-    });
+  config.signal = controller.signal;
+  if (!pendingRequest.has(reqKey)) {
+    pendingRequest.set(reqKey, controller);
+  }
 }
 
 /**
@@ -193,11 +191,19 @@ function addPendingReq(config) {
  */
 function removePendingReq(config) {
   const reqKey = generateReqKey(config);
-  const cancel = pendingRequest.get(reqKey);
-  if (cancel) {
-    cancel(reqKey);
+  const controller = pendingRequest.get(reqKey);
+  if (controller) {
+    controller.abort();
     pendingRequest.delete(reqKey);
   }
+}
+
+/**
+ * 取消所有请求
+ */
+function removeAllPendingReq() {
+  pendingRequest.forEach(controller => controller.abort());
+  pendingRequest.clear();
 }
 
 /**
