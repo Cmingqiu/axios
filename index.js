@@ -9,7 +9,7 @@ const pendingRequest = new Map();
 
 const RETRY_CONFIG = {
   retryTimes: 0, // 默认为0 不重试，设置不为0则开启请求重试
-  delay: 2000 // 请求重试的延迟时间
+  retryDelay: 0 //默认为0  请求重试的延迟时间
 };
 
 const { setLoading, delLoading } = useAxiosLoading();
@@ -68,8 +68,10 @@ class Http {
         // alert(`${httpErrorStatusCode(status)}`);
         delLoading(config);
         removePendingReq(config);
-        // 失败重试调用
-        this.handleRetry(config);
+        // 非主动取消情况下，失败重试调用
+        if (!axios.isCancel) {
+          this.handleRetry(config);
+        }
         return Promise.reject(err);
       }
     );
@@ -108,7 +110,7 @@ class Http {
   handleRetry(config) {
     if (config.retryTimes && this.#requestTimes < config.retryTimes) {
       this.#requestTimes++;
-      return sleep(config.delay).then(() => this.service(config));
+      return sleep(config.retryDelay).then(() => this.service(config));
     }
   }
 }
